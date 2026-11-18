@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f8fc">
+  <title>Kaströrelse – undersök bollens bana</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="content.js" defer></script>
+  <script src="physics.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <main class="page">
+    <header class="page-header">
+      <p class="eyebrow">Fysik · Gymnasiet</p>
+      <h1>Kaströrelse</h1>
+      <p class="intro" id="intro"></p>
+    </header>
+
+    <section class="workspace" aria-label="Kaströrelsesimulering">
+      <section class="card controls" aria-labelledby="controls-title">
+        <h2 id="controls-title">Ändra förutsättningarna</h2>
+        <p class="section-hint">Resultat uppdateras direkt. Äldre banor blir streckade; Reset rensar dem.</p>
+
+        <div class="field">
+          <label for="speed">Begynnelsehastighet</label>
+          <div class="input-with-unit">
+            <input id="speed" type="number" min="0.1" max="200" step="0.5" value="20">
+            <span>m/s</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="angle">Kastvinkel <output id="angle-value" for="angle">45°</output></label>
+          <input id="angle" type="range" min="-90" max="90" step="1" value="45">
+          <div class="range-ends" aria-hidden="true"><span>−90°</span><span>90°</span></div>
+        </div>
+
+        <div class="field">
+          <label for="launch-height">Starthöjd över marken</label>
+          <div class="input-with-unit">
+            <input id="launch-height" type="number" min="0" max="1000" step="0.5" value="0">
+            <span>m</span>
+          </div>
+          <small>Negativa och vågräta kast kräver starthöjd över marken.</small>
+        </div>
+
+        <div class="field">
+          <label for="celestial-body">Planet eller måne</label>
+          <select id="celestial-body">
+            <optgroup label="Planeter">
+              <option value="3.70">Merkurius</option>
+              <option value="8.87">Venus</option>
+              <option value="9.82" selected>Jorden</option>
+              <option value="3.71">Mars</option>
+              <option value="24.79">Jupiter</option>
+              <option value="10.44">Saturnus</option>
+              <option value="8.69">Uranus</option>
+              <option value="11.15">Neptunus</option>
+            </optgroup>
+            <optgroup label="Dvärgplanet">
+              <option value="0.62">Pluto</option>
+            </optgroup>
+            <optgroup label="Månar">
+              <option value="1.62">Månen</option>
+              <option value="1.80">Io</option>
+              <option value="1.31">Europa</option>
+              <option value="1.43">Ganymedes</option>
+              <option value="1.24">Callisto</option>
+              <option value="1.35">Titan</option>
+              <option value="0.11">Enceladus</option>
+            </optgroup>
+            <option value="custom">Eget värde</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="gravity">Tyngdacceleration, g</label>
+          <div class="input-with-unit">
+            <input id="gravity" type="number" min="0.01" max="50" step="0.01" value="9.82">
+            <span>m/s²</span>
+          </div>
+          <small id="gravity-hint"></small>
+        </div>
+
+        <fieldset class="axis-limits">
+          <legend>Fast skala i diagrammet</legend>
+          <p>Ändra gränserna här; hastighet och vinkel ändrar inte skalan.</p>
+          <div class="axis-limit-grid">
+            <div class="axis-limit">
+              <label for="x-axis-max">Horisontellt max</label>
+              <div class="input-with-unit">
+                <input id="x-axis-max" type="number" min="0.1" step="10" value="100">
+                <span>m</span>
+              </div>
+            </div>
+            <div class="axis-limit">
+              <label for="y-axis-min">Höjd min</label>
+              <div class="input-with-unit">
+                <input id="y-axis-min" type="number" step="5" value="-20">
+                <span>m</span>
+              </div>
+            </div>
+            <div class="axis-limit">
+              <label for="y-axis-max">Höjd max</label>
+              <div class="input-with-unit">
+                <input id="y-axis-max" type="number" step="5" value="30">
+                <span>m</span>
+              </div>
+            </div>
+          </div>
+        </fieldset>
+
+        <p id="error-message" class="error" role="alert" hidden></p>
+        <div class="controls-actions">
+          <button id="play-button" class="play-button" type="button">Spela upp rörelsen</button>
+          <button id="reset-button" class="reset-button" type="button">Reset</button>
+        </div>
+      </section>
+
+      <section class="card visualization" aria-labelledby="visualization-title">
+        <div class="card-heading">
+          <div>
+            <h2 id="visualization-title">Bollens bana</h2>
+            <p class="section-hint">Axlarna har samma meterskala och fasta gränser. Bollen startar på vald höjd och landar vid marken.</p>
+          </div>
+          <div class="chart-legend">
+            <span class="chart-key"><span class="key-dot"></span> Bana</span>
+            <span class="chart-key"><span class="old-line-key"></span> Tidigare banor</span>
+            <span class="chart-key"><span class="key-arrow"></span> Hastighetsvektor</span>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <svg id="trajectory" viewBox="0 0 800 440" role="img" aria-labelledby="chart-title chart-description">
+            <title id="chart-title">Graf över bollens kastbana</title>
+            <desc id="chart-description">Banan visas som en parabel från marknivå tillbaka till marknivå.</desc>
+          </svg>
+        </div>
+        <p id="scale-warning" class="scale-warning" role="status" hidden></p>
+        <p class="vector-caption">Pilens riktning visar rörelseriktningen och dess längd visar farten. Skala: 1 m/s motsvarar 0,1 m i diagrammet. <span id="velocity-readout"></span></p>
+      </section>
+    </section>
+
+    <section class="results" aria-labelledby="results-title" aria-live="polite">
+      <h2 id="results-title" class="visually-hidden">Beräknade resultat</h2>
+      <article class="result-card">
+        <span class="result-label">Flygtid</span>
+        <strong id="flight-time">–</strong>
+        <span class="result-unit">sekunder</span>
+      </article>
+      <article class="result-card">
+        <span class="result-label">Räckvidd</span>
+        <strong id="range">–</strong>
+        <span class="result-unit">meter</span>
+      </article>
+      <article class="result-card">
+        <span class="result-label">Högsta höjd</span>
+        <strong id="max-height">–</strong>
+        <span class="result-unit">meter</span>
+      </article>
+    </section>
+
+    <section class="card learning" aria-labelledby="learning-title">
+      <h2 id="learning-title">Vad händer i rörelsen?</h2>
+      <p id="lesson-intro"></p>
+      <div class="equations" aria-label="Formler">
+        <p><span>Horisontellt:</span> <code id="horizontal-equation"></code></p>
+        <p><span>Vertikalt:</span> <code id="vertical-equation"></code></p>
+        <p><span>Flygtid:</span> <code id="time-equation"></code></p>
+        <p><span>Räckvidd:</span> <code id="range-equation"></code></p>
+      </div>
+      <p id="lesson-note" class="note"></p>
+    </section>
+
+    <footer>
+      <p>En förenklad modell: luftmotstånd försummas och tyngdaccelerationen är konstant.</p>
+    </footer>
+  </main>
+</body>
+</html>
